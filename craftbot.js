@@ -65,59 +65,24 @@ async function sendStyledMessage(rcon, message, isThinking = false, showHeader =
 // --- UTILITY FUNCTION for smart word-aware chunking ---
 // Splits text into chunks, accounting for header space on first message
 function smartChunk(text, firstChunkSize, continuationChunkSize) {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const words = text.split(' ');
     const chunks = [];
     let currentChunk = '';
     let isFirstChunk = true;
     
-    for (let sentence of sentences) {
-        sentence = sentence.trim();
-        if (!sentence) continue;
-        
-        // Add punctuation back (except for the last sentence)
-        if (!sentence.match(/[.!?]$/)) {
-            sentence += '.';
-        }
-        
-        // Use appropriate chunk size based on whether this is first chunk or continuation
+    for (const word of words) {
         const targetChunkSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
+        const separator = currentChunk ? ' ' : '';
         
-        // If the sentence is too long by itself, split it further
-        if (sentence.length > targetChunkSize) {
-            // If current chunk has content, save it first
-            if (currentChunk.trim()) {
-                chunks.push(currentChunk.trim());
-                currentChunk = '';
-                isFirstChunk = false;
-            }
-            
-            // Split long sentence by words
-            const words = sentence.split(' ');
-            let wordChunk = '';
-            
-            for (const word of words) {
-                const currentTargetSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
-                if (wordChunk.length + word.length + 1 > currentTargetSize && wordChunk.length > 0) {
-                    chunks.push(wordChunk.trim());
-                    wordChunk = word;
-                    isFirstChunk = false;
-                } else {
-                    wordChunk += (wordChunk ? ' ' : '') + word;
-                }
-            }
-            
-            if (wordChunk.trim()) {
-                currentChunk = wordChunk.trim();
-            }
+        // Check if adding this word would exceed the chunk size
+        if (currentChunk.length + separator.length + word.length > targetChunkSize && currentChunk.length > 0) {
+            // Save current chunk and start a new one
+            chunks.push(currentChunk.trim());
+            currentChunk = word;
+            isFirstChunk = false;
         } else {
-            // Check if adding this sentence would exceed chunk size
-            if (currentChunk.length + sentence.length + 1 > targetChunkSize && currentChunk.length > 0) {
-                chunks.push(currentChunk.trim());
-                currentChunk = sentence;
-                isFirstChunk = false;
-            } else {
-                currentChunk += (currentChunk ? ' ' : '') + sentence;
-            }
+            // Add word to current chunk
+            currentChunk += separator + word;
         }
     }
     

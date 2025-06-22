@@ -25,9 +25,9 @@ const CHAT_REGEX = /\[[^\]]+\] \[Server thread\/INFO\](?:\s\[[^\]]+\])?: <(.+?)>
 
 // --- UTILITY FUNCTION for sending styled messages ---
 // Sends messages with custom JSON formatting like the backup script
-async function sendStyledMessage(rcon, message, isThinking = false, showHeader = true) {
-    const messageColor = isThinking ? "gray" : "white";
-    const statusText = isThinking ? "Thinking" : "Gem";
+async function sendStyledMessage(rcon, message, showHeader = true) {
+    const messageColor = "white";
+    const statusText = "Gem";
     
     let jsonPayload;
     
@@ -118,10 +118,9 @@ async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
         const chunk = chunks[i];
         const isFirstChunk = i === 0;
         const isLastChunk = i === chunks.length - 1;
-        
-        try {
+          try {
             // Only show header on first chunk
-            await sendStyledMessage(rcon, chunk, false, isFirstChunk);
+            await sendStyledMessage(rcon, chunk, isFirstChunk);
             
             // Add delay between chunks (except after the last one)
             if (!isLastChunk) {
@@ -280,8 +279,8 @@ async function main() {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
                             console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
                             (async () => {
-                                try {                                    // Send thinking message
-                                    await sendStyledMessage(rcon, "Thinking...", true);// Check for flags
+                                try {
+                                    // Check for flags
                                     const isLongRequest = userPrompt.toLowerCase().includes('-long');
                                     const isMcRequest = userPrompt.toLowerCase().includes('-mc');
                                     const isT2Request = userPrompt.toLowerCase().includes('-t2');
@@ -335,8 +334,7 @@ async function main() {
                                     console.log(`[${serverConfig.name}] Gemini Response chunks:`, optimizedChunks);
 
                                     // Send the optimized chunks
-                                    await sendOptimizedChunks(rcon, optimizedChunks, isLongRequest);
-                                } catch (error) {
+                                    await sendOptimizedChunks(rcon, optimizedChunks, isLongRequest);                                } catch (error) {
                                     console.error(`[${serverConfig.name}] Gemini API Error:`, error);
                                     await sendStyledMessage(rcon, "I had a problem thinking about that. Please try again.");
                                 }

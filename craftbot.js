@@ -63,7 +63,7 @@ async function sendStyledMessage(rcon, message, isThinking = false, showHeader =
 }
 
 // --- UTILITY FUNCTION for smart word-aware chunking ---
-// Splits text into chunks, accounting for header space on first message
+// Splits text into chunks based on available character space, breaking only at word boundaries
 function smartChunk(text, firstChunkSize, continuationChunkSize) {
     const words = text.split(' ');
     const chunks = [];
@@ -71,24 +71,23 @@ function smartChunk(text, firstChunkSize, continuationChunkSize) {
     let isFirstChunk = true;
     
     for (const word of words) {
-        const targetChunkSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
+        const maxChunkSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
         const separator = currentChunk ? ' ' : '';
+        const potentialLength = currentChunk.length + separator.length + word.length;
         
-        // Check if adding this word would exceed the chunk size
-        if (currentChunk.length + separator.length + word.length > targetChunkSize && currentChunk.length > 0) {
-            // Save current chunk and start a new one
-            chunks.push(currentChunk.trim());
+        // If adding this word would exceed the available space, start a new chunk
+        if (potentialLength > maxChunkSize && currentChunk.length > 0) {
+            chunks.push(currentChunk);
             currentChunk = word;
             isFirstChunk = false;
         } else {
-            // Add word to current chunk
             currentChunk += separator + word;
         }
     }
     
     // Add the final chunk if there's remaining text
-    if (currentChunk.trim()) {
-        chunks.push(currentChunk.trim());
+    if (currentChunk) {
+        chunks.push(currentChunk);
     }
     
     return chunks;
@@ -98,8 +97,8 @@ function smartChunk(text, firstChunkSize, continuationChunkSize) {
 // Minecraft chat optimized for readability with proper pacing
 async function sendLongMessage(rcon, message, isLongResponse = false) {
     // Header line needs space for "[SERVER][Gem]: " which is about 16 characters
-    const HEADER_CHUNK_SIZE = 50; // First line with header
-    const CONTINUATION_CHUNK_SIZE = 66; // Continuation lines (no header, full width)
+    const HEADER_CHUNK_SIZE = 55; // First line with header (slightly increased)
+    const CONTINUATION_CHUNK_SIZE = 70; // Continuation lines (full width, slightly increased)
     const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
     
     const chunks = smartChunk(message, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);

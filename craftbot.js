@@ -122,6 +122,29 @@ async function sendLongMessage(rcon, message, isLongResponse = false) {
     }
 }
 
+// --- UTILITY FUNCTION for sending pre-optimized chunks ---
+// Sends chunks that have already been optimized for character limits
+async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
+    const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
+    
+    for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const isFirstChunk = i === 0;
+        const isLastChunk = i === chunks.length - 1;
+        
+        try {
+            // Only show header on first chunk
+            await sendStyledMessage(rcon, chunk, false, isFirstChunk);
+            
+            // Add delay between chunks (except after the last one)
+            if (!isLastChunk) {
+                await new Promise(resolve => setTimeout(resolve, DELAY));
+            }
+        } catch (err) {
+            console.error("Failed to send message chunk via RCON:", err);
+        }
+    }
+}
 
 // --- MAIN MULTI-SERVER LOGIC ---
 async function main() {
@@ -199,13 +222,18 @@ async function main() {
                                         // For -long requests, allow detailed responses
                                         prompt = `Give a detailed, comprehensive explanation (2-3 paragraphs) for: ${actualPrompt}`;
                                     }
+                                      const result = await model.generateContent(prompt);
+                                    let text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
                                     
-                                    const result = await model.generateContent(prompt);
-                                    const text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
-                                    console.log(`[${serverConfig.name}] Gemini Response: "${text}"`);
+                                    // Pre-process the text to create optimized chunks
+                                    const HEADER_CHUNK_SIZE = 62;
+                                    const CONTINUATION_CHUNK_SIZE = 78;
+                                    const optimizedChunks = smartChunk(text, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);
+                                    
+                                    console.log(`[${serverConfig.name}] Gemini Response chunks:`, optimizedChunks);
 
-                                    // Respond using this specific server's RCON connection
-                                    await sendLongMessage(rcon, text, isLongRequest);
+                                    // Send the optimized chunks
+                                    await sendOptimizedChunks(rcon, optimizedChunks, isLongRequest);
                                 } catch (error) {
                                     console.error(`[${serverConfig.name}] Gemini API Error:`, error);
                                     await sendStyledMessage(rcon, "I had a problem thinking about that. Please try again.");

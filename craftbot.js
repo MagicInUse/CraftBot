@@ -25,47 +25,88 @@ const CHAT_REGEX = /\[[^\]]+\] \[Server thread\/INFO\](?:\s\[[^\]]+\])?: <(.+?)>
 
 // --- UTILITY FUNCTION for sending styled messages ---
 // Sends messages with custom JSON formatting like the backup script
-async function sendStyledMessage(rcon, message, isThinking = false) {
+async function sendStyledMessage(rcon, message, isThinking = false, showHeader = true) {
     const messageColor = isThinking ? "gray" : "white";
     const statusText = isThinking ? "Thinking" : "Gem";
     
-    // Build JSON payload similar to your backup script format
-    const jsonPayload = [
-        "",
-        {"text":"[","color":"gold"},
-        {"text":"SERVER","color":"gray"},
-        {"text":"]","color":"gold"},
-        {"text":"[","color":"gray"},
-        {"text":statusText,"color":"aqua"},
-        {"text":"]:","color":"gray"},
-        {"text":" ","color":"gray"},
-        {"text":message,"color":messageColor}
-    ];
+    let jsonPayload;
+    
+    if (showHeader) {
+        // Build JSON payload with [SERVER][Gem] header
+        jsonPayload = [
+            "",
+            {"text":"[","color":"gold"},
+            {"text":"SERVER","color":"gray"},
+            {"text":"]","color":"gold"},
+            {"text":"[","color":"gray"},
+            {"text":statusText,"color":"aqua"},
+            {"text":"]:","color":"gray"},
+            {"text":" ","color":"gray"},
+            {"text":message,"color":messageColor}
+        ];
+    } else {
+        // Just send the message without header (for continuation)
+        jsonPayload = [
+            "",
+            {"text":message,"color":messageColor}
+        ];
+    }
     
     try {
         await rcon.send(`tellraw @a ${JSON.stringify(jsonPayload)}`);
     } catch (err) {
         console.error("Failed to send styled message via RCON:", err);
         // Fallback to simple say command
-        await rcon.send(`say [SERVER][Gem] ${message}`);
+        const prefix = showHeader ? "[SERVER][Gem] " : "";
+        await rcon.send(`say ${prefix}${message}`);
     }
 }
 
+// --- UTILITY FUNCTION for smart word-aware chunking ---
+// Splits text without breaking words, and handles continuation properly
+function smartChunk(text, chunkSize) {
+    const words = text.split(' ');
+    const chunks = [];
+    let currentChunk = '';
+    
+    for (const word of words) {
+        // Check if adding this word would exceed the chunk size
+        if (currentChunk.length + word.length + 1 > chunkSize && currentChunk.length > 0) {
+            chunks.push(currentChunk.trim());
+            currentChunk = word;
+        } else {
+            currentChunk += (currentChunk ? ' ' : '') + word;
+        }
+    }
+    
+    // Add the final chunk if there's remaining text
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+    
+    return chunks;
+}
+
 // --- UTILITY FUNCTION for sending long messages ---
-// Minecraft chat has a character limit, so this splits long responses.
-async function sendLongMessage(rcon, message) {
-    const CHUNK_SIZE = 80; // Reduced from 100 for better chat readability
-    const chunks = message.match(new RegExp(`.{1,${CHUNK_SIZE}}`, 'g')) || [];
+// Minecraft chat has a character limit, so this splits long responses intelligently
+async function sendLongMessage(rcon, message, isLongResponse = false) {
+    const CHUNK_SIZE = 80; // Character limit per message
+    const DELAY = isLongResponse ? 2000 : 500; // Longer delay for -long responses
+    
+    const chunks = smartChunk(message, CHUNK_SIZE);
     
     for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
+        const isFirstChunk = i === 0;
         const isLastChunk = i === chunks.length - 1;
         
         try {
-            await sendStyledMessage(rcon, chunk);
-            // Add a small delay to prevent spamming the chat and to ensure message order
+            // Only show header on first chunk
+            await sendStyledMessage(rcon, chunk, false, isFirstChunk);
+            
+            // Add delay between chunks (except after the last one)
             if (!isLastChunk) {
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, DELAY));
             }
         } catch (err) {
             console.error("Failed to send message chunk via RCON:", err);
@@ -127,24 +168,28 @@ async function main() {
                         // Check for the bot trigger
                         if (message.toLowerCase().startsWith(BOT_TRIGGER)) {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
-                            console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);
-
-                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
+                            console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
                             (async () => {
                                 try {
                                     // Send thinking message
                                     await sendStyledMessage(rcon, "Thinking...", true);
                                     
-                                    // Check if user is asking for more details
-                                    const isMoreRequest = /\b(more|detail|explain|elaborate|longer)\b/i.test(userPrompt);
+                                    // Check for -long flag
+                                    const isLongRequest = userPrompt.toLowerCase().startsWith('-long ');
+                                    let actualPrompt = userPrompt;
                                     
-                                    let prompt = userPrompt;
-                                    if (!isMoreRequest) {
+                                    if (isLongRequest) {
+                                        // Remove the -long flag from the prompt
+                                        actualPrompt = userPrompt.substring(6).trim(); // Remove "-long "
+                                    }
+                                    
+                                    let prompt = actualPrompt;
+                                    if (!isLongRequest) {
                                         // For regular questions, request a short response
-                                        prompt = `Give a brief, concise answer (1-2 sentences max) to: ${userPrompt}. If more detail would be helpful, end with "Type '@gem more' for details."`;
+                                        prompt = `Give a brief, concise answer (1-2 sentences max) to: ${actualPrompt}`;
                                     } else {
-                                        // For "more" requests, allow longer responses
-                                        prompt = `Give a detailed explanation for: ${userPrompt}`;
+                                        // For -long requests, allow detailed responses
+                                        prompt = `Give a detailed, comprehensive explanation (2-3 paragraphs) for: ${actualPrompt}`;
                                     }
                                     
                                     const result = await model.generateContent(prompt);
@@ -152,7 +197,7 @@ async function main() {
                                     console.log(`[${serverConfig.name}] Gemini Response: "${text}"`);
 
                                     // Respond using this specific server's RCON connection
-                                    await sendLongMessage(rcon, text);
+                                    await sendLongMessage(rcon, text, isLongRequest);
                                 } catch (error) {
                                     console.error(`[${serverConfig.name}] Gemini API Error:`, error);
                                     await sendStyledMessage(rcon, "I had a problem thinking about that. Please try again.");

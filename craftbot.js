@@ -72,23 +72,39 @@ function smartChunk(text, firstChunkSize, continuationChunkSize) {
     
     for (const word of words) {
         const maxChunkSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
-        const separator = currentChunk ? ' ' : '';
-        const potentialLength = currentChunk.length + separator.length + word.length;
         
-        // If adding this word would exceed the available space, start a new chunk
+        // Calculate what the length would be if we add this word
+        // If currentChunk is empty, no space needed; otherwise add 1 for the space
+        const spaceNeeded = currentChunk.length === 0 ? 0 : 1;
+        const potentialLength = currentChunk.length + spaceNeeded + word.length;
+        
+        // If adding this word would exceed the limit AND we already have content
         if (potentialLength > maxChunkSize && currentChunk.length > 0) {
+            // Save current chunk and start new one with this word
             chunks.push(currentChunk);
             currentChunk = word;
             isFirstChunk = false;
         } else {
-            currentChunk += separator + word;
+            // Add word to current chunk (with space if needed)
+            if (currentChunk.length > 0) {
+                currentChunk += ' ';
+            }
+            currentChunk += word;
         }
     }
     
     // Add the final chunk if there's remaining text
-    if (currentChunk) {
+    if (currentChunk.length > 0) {
         chunks.push(currentChunk);
     }
+    
+    // Debug: log chunk lengths
+    console.log('Chunk analysis:');
+    chunks.forEach((chunk, i) => {
+        const isFirst = i === 0;
+        const maxSize = isFirst ? firstChunkSize : continuationChunkSize;
+        console.log(`Chunk ${i + 1} (${isFirst ? 'header' : 'continuation'}): ${chunk.length}/${maxSize} chars - "${chunk}"`);
+    });
     
     return chunks;
 }

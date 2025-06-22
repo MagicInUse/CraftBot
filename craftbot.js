@@ -121,12 +121,12 @@ async function main() {
                     const match = line.match(CHAT_REGEX);
                     if (match) {
                         const playerName = match[1];
-                        const message = match[2].trim();                        // Check for the bot trigger
-                        if (message.toLowerCase().startsWith(BOT_TRIGGER)) {
+                        const message = match[2].trim();                        // Check for the bot trigger                        if (message.toLowerCase().startsWith(BOT_TRIGGER)) {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
                             console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);
 
-                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop                            (async () => {
+                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
+                            (async () => {
                                 try {
                                     // Send thinking message
                                     await sendStyledMessage(rcon, "Thinking...", true);

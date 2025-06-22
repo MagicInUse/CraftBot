@@ -137,8 +137,7 @@ async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
 // Sends a beautifully formatted help message with colors and styling
 async function sendCustomHelpMessage(rcon) {
     const delay = 1000; // 1 second delay between help lines
-    
-    // Header line
+      // Header line
     const headerPayload = [
         "",
         {"text":"[","color":"gold"},
@@ -148,40 +147,47 @@ async function sendCustomHelpMessage(rcon) {
         {"text":"Gem","color":"aqua"},
         {"text":"]:","color":"gray"},
         {"text":" ","color":"gray"},
-        {"text":"✨ ","color":"yellow"},
+        {"text":"* ","color":"yellow"},
         {"text":"CraftBot Help Guide","color":"light_purple","bold":true},
-        {"text":" ✨","color":"yellow"}
+        {"text":" *","color":"yellow"}
     ];
-    
-    // Usage line
+      // Usage line
     const usagePayload = [
         "",
-        {"text":"💎 ","color":"aqua"},
+        {"text":"+ ","color":"aqua"},
         {"text":"Usage: ","color":"white","bold":true},
-        {"text":"@gem","color":"green","bold":true},
+        {"text":"@gem","color":"green"},
         {"text":" [flags] ","color":"yellow"},
         {"text":"<your question>","color":"white"}
     ];
     
-    // Flags line
-    const flagsPayload = [
+    // Flags line 1
+    const flags1Payload = [
         "",
-        {"text":"🚩 ","color":"red"},
+        {"text":"- ","color":"red"},
         {"text":"Flags: ","color":"white","bold":true},
         {"text":"-long","color":"gold"},
         {"text":" (detailed) ","color":"gray"},
         {"text":"-mc","color":"green"},
-        {"text":" (Minecraft) ","color":"gray"},
+        {"text":" (Minecraft)","color":"gray"}
+    ];
+    
+    // Flags line 2
+    const flags2Payload = [
+        "",
+        {"text":"       ","color":"white"},
         {"text":"-t2","color":"blue"},
         {"text":" (Tekkit2) ","color":"gray"},
         {"text":"-cm","color":"light_purple"},
-        {"text":" (Cobblemon)","color":"gray"}
+        {"text":" (Cobblemon) ","color":"gray"},
+        {"text":"-help","color":"yellow"},
+        {"text":" (this guide)","color":"gray"}
     ];
     
     // Example line
     const examplePayload = [
         "",
-        {"text":"📝 ","color":"yellow"},
+        {"text":"? ","color":"yellow"},
         {"text":"Example: ","color":"white","bold":true},
         {"text":"'@gem -mc -long what is redstone?'","color":"aqua","italic":true}
     ];
@@ -189,21 +195,23 @@ async function sendCustomHelpMessage(rcon) {
     // Fun feature line
     const funPayload = [
         "",
-        {"text":"🎉 ","color":"gold"},
+        {"text":"! ","color":"gold"},
         {"text":"Fun Tip: ","color":"white","bold":true},
         {"text":"Ask ","color":"gray"},
-        {"text":"'why'","color":"yellow","bold":true},
+        {"text":"'why'","color":"yellow"},
         {"text":" questions for a surprise!","color":"gray"}
     ];
-    
-    try {
+      try {
         await rcon.send(`tellraw @a ${JSON.stringify(headerPayload)}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await rcon.send(`tellraw @a ${JSON.stringify(usagePayload)}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
-        await rcon.send(`tellraw @a ${JSON.stringify(flagsPayload)}`);
+        await rcon.send(`tellraw @a ${JSON.stringify(flags1Payload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        await rcon.send(`tellraw @a ${JSON.stringify(flags2Payload)}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await rcon.send(`tellraw @a ${JSON.stringify(examplePayload)}`);
@@ -272,9 +280,8 @@ async function main() {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
                             console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
                             (async () => {
-                                try {
-                                    // Send thinking message
-                                    await sendStyledMessage(rcon, "Thinking...", true);                                      // Check for flags
+                                try {                                    // Send thinking message
+                                    await sendStyledMessage(rcon, "Thinking...", true);// Check for flags
                                     const isLongRequest = userPrompt.toLowerCase().includes('-long');
                                     const isMcRequest = userPrompt.toLowerCase().includes('-mc');
                                     const isT2Request = userPrompt.toLowerCase().includes('-t2');

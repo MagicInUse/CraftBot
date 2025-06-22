@@ -1,5 +1,5 @@
 {
-  "name": "CraftBot",
+  "name": "craftbot",
   "version": "1.0.0",
   "description": "A multi-server Minecraft chatbot using the Gemini API.",
   "main": "craftbot.js",  "scripts": {

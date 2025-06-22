@@ -20,7 +20,8 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Regular expression to capture chat messages from the log
-const CHAT_REGEX = /\[Server thread\/INFO\]: <(.+?)> (.*)/;
+// Updated to handle both vanilla and modded server log formats
+const CHAT_REGEX = /\[[^\]]+\] \[Server thread\/INFO\](?:\s\[[^\]]+\])?: <(.+?)> (.*)/;
 
 // --- UTILITY FUNCTION for sending long messages ---
 // Minecraft chat has a character limit, so this splits long responses.

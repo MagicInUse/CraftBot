@@ -87,15 +87,17 @@ async function main() {
             }
 
             // Store file size to only read new lines
-            let lastSize = fs.statSync(serverConfig.logPath).size;
-
-            // Connect to this server's RCON
+            let lastSize = fs.statSync(serverConfig.logPath).size;            // Connect to this server's RCON
             const rcon = await Rcon.connect({
                 host: serverConfig.rconHost,
                 port: serverConfig.rconPort,
                 password: serverConfig.rconPassword,
-            });            console.log(`[${serverConfig.name}] RCON connected. Watching log file.`);
-            rcon.on('error', (err) => console.error(`[${serverConfig.name}] RCON Error:`, err));            // Create a dedicated watcher for this server's log file
+            });
+
+            console.log(`[${serverConfig.name}] RCON connected. Watching log file.`);
+            rcon.on('error', (err) => console.error(`[${serverConfig.name}] RCON Error:`, err));
+
+            // Create a dedicated watcher for this server's log file
             const watcher = chokidar.watch(serverConfig.logPath, { persistent: true, usePolling: true });
 
             watcher.on('change', (filePath) => {
@@ -118,10 +120,12 @@ async function main() {
                 const lines = buffer.toString('utf-8').split('\n').filter(line => line.length > 0);
 
                 for (const line of lines) {
-                    const match = line.match(CHAT_REGEX);
-                    if (match) {
+                    const match = line.match(CHAT_REGEX);                    if (match) {
                         const playerName = match[1];
-                        const message = match[2].trim();                        // Check for the bot trigger                        if (message.toLowerCase().startsWith(BOT_TRIGGER)) {
+                        const message = match[2].trim();
+
+                        // Check for the bot trigger
+                        if (message.toLowerCase().startsWith(BOT_TRIGGER)) {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
                             console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);
 

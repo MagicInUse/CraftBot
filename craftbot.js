@@ -240,15 +240,14 @@ async function sendCustomHelpMessage(rcon) {
         {"text":"-me","color":"green"},
         {"text":" for instant private replies!","color":"gray"}
     ];
-    
-    // Fun feature line
+      // Fun feature line
     const funPayload = [
         "",
-        {"text":"! ","color":"gold"},
+        {"text":"!! ","color":"gold"},
         {"text":"Fun Tip: ","color":"white","bold":true},
-        {"text":"Ask ","color":"gray"},
-        {"text":"'why'","color":"yellow"},
-        {"text":" questions for a surprise!","color":"gray"}
+        {"text":"Always ask ","color":"gray"},
+        {"text":"why","color":"yellow"},
+        {"text":"!","color":"gray"}
     ];
       try {
         await rcon.send(`tellraw @a ${JSON.stringify(headerPayload)}`);

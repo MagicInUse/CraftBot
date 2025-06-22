@@ -25,7 +25,6 @@ CraftBot/
 ├── config.json                    # Server configurations (working file)
 ├── config.example.json            # Example server configuration template
 ├── craftbot.js                    # Main application logic
-├── start.sh                       # Linux startup script
 ├── minecraft-bot.service          # Systemd service file (working file)
 ├── minecraft-bot.service.example  # Example systemd service template
 ├── test-config.js                 # Configuration validation script
@@ -101,6 +100,21 @@ rcon.password=your_rcon_password
 
 **Note**: Use different RCON ports for each server if running multiple servers on the same machine.
 
+### 5. Test Your Configuration
+
+Before running the bot, validate your setup:
+
+```bash
+node test-config.js
+```
+
+This will check:
+- ✅ Environment variables (API key)
+- ✅ Server configurations and file paths
+- ✅ RCON connectivity to each server
+- ✅ Gemini API connectivity
+- ✅ Log file accessibility and format
+
 ## Running the Bot
 
 ### Development Mode
@@ -115,49 +129,81 @@ or
 node craftbot.js
 ```
 
-### Linux Systemd Service
+### Production Linux Systemd Service
 
-1. **Make the startup script executable:**
-   ```bash
-   chmod +x start.sh
-   ```
+The included systemd service provides enterprise-grade reliability with auto-start on boot, automatic restart on failure, and comprehensive logging.
 
-2. **Copy and customize the service file:**
+#### Features
+- **Auto-start on boot** - Automatically starts when the system boots
+- **Self-healing** - Restarts automatically if the bot crashes
+- **Resource protection** - Prevents excessive resource usage
+- **Security hardening** - Runs with minimal privileges
+- **Centralized logging** - All output captured in systemd journal
+
+#### Setup Instructions
+
+1. **Copy and customize the service file:**
    ```bash
    sudo cp minecraft-bot.service.example /etc/systemd/system/minecraft-bot.service
    ```
 
-3. **Edit the service file to match your paths and user:**
+2. **Edit the service file to match your environment:**
    ```bash
    sudo nano /etc/systemd/system/minecraft-bot.service
    ```
 
-   Update the following fields:
-   - `User=your_user` → `User=minecraft` (or your actual username)
-   - `Group=your_user_group` → `Group=minecraft` (or your actual group)
-   - `WorkingDirectory=/home/your_user/minecraft-bot` → `WorkingDirectory=/home/minecraft/CraftBot`
-   - `ExecStart=/home/your_user/minecraft-bot/start.sh` → `ExecStart=/home/minecraft/CraftBot/start.sh`
-
-4. **Reload systemd and enable the service:**
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable minecraft-bot.service
+   Update these fields to match your setup:
+   ```ini
+   User=your_user                                    # → your actual username
+   Group=your_user_group                            # → your actual group  
+   WorkingDirectory=/home/your_user/CraftBot        # → your actual path
+   ExecStart=/usr/bin/node /home/your_user/CraftBot/craftbot.js  # → your actual path
    ```
 
-5. **Start the service:**
+3. **Install and start the service:**
    ```bash
+   # Reload systemd configuration
+   sudo systemctl daemon-reload
+   
+   # Enable auto-start on boot
+   sudo systemctl enable minecraft-bot.service
+   
+   # Start the service now
    sudo systemctl start minecraft-bot.service
    ```
 
-6. **Check service status:**
-   ```bash
-   sudo systemctl status minecraft-bot.service
-   ```
+#### Service Management
 
-7. **View logs:**
-   ```bash
-   sudo journalctl -u minecraft-bot.service -f
-   ```
+```bash
+# Check service status
+sudo systemctl status minecraft-bot.service
+
+# View live logs (follow mode)
+sudo journalctl -u minecraft-bot.service -f
+
+# View recent logs
+sudo journalctl -u minecraft-bot.service --since "1 hour ago"
+
+# Restart the service
+sudo systemctl restart minecraft-bot.service
+
+# Stop the service  
+sudo systemctl stop minecraft-bot.service
+
+# Disable auto-start
+sudo systemctl disable minecraft-bot.service
+```
+
+#### Service Configuration
+
+The systemd service includes these production-ready settings:
+
+- **Restart Policy**: `Restart=always` with 10-second delay
+- **Failure Handling**: Up to 3 restart attempts per minute before giving up
+- **Network Dependencies**: Waits for network connectivity before starting
+- **Security**: Private tmp directories, no privilege escalation
+- **Logging**: All output directed to systemd journal with `craftbot` identifier
+- **Environment**: Runs in `NODE_ENV=production` mode
 
 ## Usage
 

@@ -1,6 +1,7 @@
 [Unit]
-Description=Minecraft Gemini Bot
-After=network.target
+Description=CraftBot - Multi-Server Minecraft Chatbot with Gemini AI
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -8,8 +9,24 @@ User=your_user
 Group=your_user_group
 WorkingDirectory=/home/your_user/CraftBot
 ExecStart=/usr/bin/node /home/your_user/CraftBot/craftbot.js
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security and resource settings
+PrivateTmp=true
+NoNewPrivileges=true
+LimitNOFILE=65536
+
+# Environment
+Environment=NODE_ENV=production
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=craftbot
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.targetion=Minecraft Gemini Bot
+After=network.target

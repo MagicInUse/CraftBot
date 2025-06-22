@@ -63,11 +63,12 @@ async function sendStyledMessage(rcon, message, isThinking = false, showHeader =
 }
 
 // --- UTILITY FUNCTION for smart word-aware chunking ---
-// Splits text into short, readable lines that won't overwhelm chat
-function smartChunk(text, chunkSize) {
+// Splits text into chunks, accounting for header space on first message
+function smartChunk(text, firstChunkSize, continuationChunkSize) {
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const chunks = [];
     let currentChunk = '';
+    let isFirstChunk = true;
     
     for (let sentence of sentences) {
         sentence = sentence.trim();
@@ -78,12 +79,16 @@ function smartChunk(text, chunkSize) {
             sentence += '.';
         }
         
+        // Use appropriate chunk size based on whether this is first chunk or continuation
+        const targetChunkSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
+        
         // If the sentence is too long by itself, split it further
-        if (sentence.length > chunkSize) {
+        if (sentence.length > targetChunkSize) {
             // If current chunk has content, save it first
             if (currentChunk.trim()) {
                 chunks.push(currentChunk.trim());
                 currentChunk = '';
+                isFirstChunk = false;
             }
             
             // Split long sentence by words
@@ -91,22 +96,25 @@ function smartChunk(text, chunkSize) {
             let wordChunk = '';
             
             for (const word of words) {
-                if (wordChunk.length + word.length + 1 > chunkSize && wordChunk.length > 0) {
+                const currentTargetSize = isFirstChunk ? firstChunkSize : continuationChunkSize;
+                if (wordChunk.length + word.length + 1 > currentTargetSize && wordChunk.length > 0) {
                     chunks.push(wordChunk.trim());
                     wordChunk = word;
+                    isFirstChunk = false;
                 } else {
                     wordChunk += (wordChunk ? ' ' : '') + word;
                 }
             }
             
             if (wordChunk.trim()) {
-                chunks.push(wordChunk.trim());
+                currentChunk = wordChunk.trim();
             }
         } else {
             // Check if adding this sentence would exceed chunk size
-            if (currentChunk.length + sentence.length + 1 > chunkSize && currentChunk.length > 0) {
+            if (currentChunk.length + sentence.length + 1 > targetChunkSize && currentChunk.length > 0) {
                 chunks.push(currentChunk.trim());
                 currentChunk = sentence;
+                isFirstChunk = false;
             } else {
                 currentChunk += (currentChunk ? ' ' : '') + sentence;
             }
@@ -124,10 +132,12 @@ function smartChunk(text, chunkSize) {
 // --- UTILITY FUNCTION for sending long messages ---
 // Minecraft chat optimized for readability with proper pacing
 async function sendLongMessage(rcon, message, isLongResponse = false) {
-    const CHUNK_SIZE = 45; // Much smaller chunks for better readability
+    // Header line needs space for "[SERVER][Gem]: " which is about 16 characters
+    const HEADER_CHUNK_SIZE = 50; // First line with header
+    const CONTINUATION_CHUNK_SIZE = 66; // Continuation lines (no header, full width)
     const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
     
-    const chunks = smartChunk(message, CHUNK_SIZE);
+    const chunks = smartChunk(message, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);
     
     for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];

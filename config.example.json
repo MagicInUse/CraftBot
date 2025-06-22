@@ -1,0 +1,25 @@
+{
+  "servers": [
+    {
+      "name": "Survival",
+      "logPath": "/full/path/to/your/survival-server/logs/latest.log",
+      "rconHost": "localhost",
+      "rconPort": 25575,
+      "rconPassword": "your_survival_rcon_password"
+    },
+    {
+      "name": "Creative",
+      "logPath": "/full/path/to/your/creative-server/logs/latest.log",
+      "rconHost": "localhost",
+      "rconPort": 25585,
+      "rconPassword": "your_creative_rcon_password"
+    },
+    {
+      "name": "Modded",
+      "logPath": "/full/path/to/your/modded-server/logs/latest.log",
+      "rconHost": "localhost",
+      "rconPort": 25595,
+      "rconPassword": "your_modded_rcon_password"
+    }
+  ]
+}

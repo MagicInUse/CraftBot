@@ -48,6 +48,18 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# Environment variables and sensitive config
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+config.local.json
+
+# Working configuration files (keep examples)
+config.json
+minecraft-bot.service
+
 # Optional npm cache directory
 .npm
 

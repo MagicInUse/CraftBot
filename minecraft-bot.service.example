@@ -1,0 +1,15 @@
+[Unit]
+Description=Minecraft Gemini Bot
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+Group=your_user_group
+WorkingDirectory=%h/CraftBot
+ExecStart=%h/CraftBot/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

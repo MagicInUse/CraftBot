@@ -1,0 +1,23 @@
+{
+  "name": "CraftBot",
+  "version": "1.0.0",
+  "description": "A multi-server Minecraft chatbot using the Gemini API.",
+  "main": "craftbot.js",  "scripts": {
+    "start": "node craftbot.js",
+    "test-config": "node test-config.js"
+  },
+  "keywords": [
+    "minecraft",
+    "bot",
+    "gemini",
+    "rcon"
+  ],
+  "author": "MagicInUse",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.14.0",
+    "chokidar": "^3.6.0",
+    "dotenv": "^16.4.5",
+    "rcon-client": "^4.2.5"
+  }
+}

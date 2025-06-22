@@ -97,8 +97,8 @@ function smartChunk(text, firstChunkSize, continuationChunkSize) {
 // Minecraft chat optimized for readability with proper pacing
 async function sendLongMessage(rcon, message, isLongResponse = false) {
     // Header line needs space for "[SERVER][Gem]: " which is about 16 characters
-    const HEADER_CHUNK_SIZE = 55; // First line with header (slightly increased)
-    const CONTINUATION_CHUNK_SIZE = 70; // Continuation lines (full width, slightly increased)
+    const HEADER_CHUNK_SIZE = 62; // First line with header - optimized based on chat analysis
+    const CONTINUATION_CHUNK_SIZE = 78; // Continuation lines - optimized for full chat width
     const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
     
     const chunks = smartChunk(message, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);

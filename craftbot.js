@@ -191,26 +191,45 @@ async function main() {
                                 try {
                                     // Send thinking message
                                     await sendStyledMessage(rcon, "Thinking...", true);
+                                      // Check for flags
+                                    const isLongRequest = userPrompt.toLowerCase().includes('-long');
+                                    const isMcRequest = userPrompt.toLowerCase().includes('-mc');
+                                    const isT2Request = userPrompt.toLowerCase().includes('-t2');
+                                    const isCmRequest = userPrompt.toLowerCase().includes('-cm');
+                                    const hasWhyQuestion = userPrompt.toLowerCase().includes('why');
                                     
-                                    // Check for -long flag
-                                    const isLongRequest = userPrompt.toLowerCase().startsWith('-long ');
-                                    let actualPrompt = userPrompt;
+                                    // Remove all flags from the prompt
+                                    let actualPrompt = userPrompt
+                                        .replace(/-long/gi, '')
+                                        .replace(/-mc/gi, '')
+                                        .replace(/-t2/gi, '')
+                                        .replace(/-cm/gi, '')
+                                        .trim();
                                     
-                                    if (isLongRequest) {
-                                        // Remove the -long flag from the prompt
-                                        actualPrompt = userPrompt.substring(6).trim(); // Remove "-long "
+                                    // Build the prompt with context
+                                    let contextPrefix = '';
+                                    if (isMcRequest) {
+                                        contextPrefix = 'About Java Minecraft in general: ';
+                                    } else if (isT2Request) {
+                                        contextPrefix = 'About the Tekkit2 modpack for Minecraft: ';
+                                    } else if (isCmRequest) {
+                                        contextPrefix = 'About the Cobblemon modpack for Minecraft: ';
                                     }
                                     
-                                    let prompt = actualPrompt;
+                                    let prompt = contextPrefix + actualPrompt;
                                     if (!isLongRequest) {
-                                        // For regular questions, request a short response
-                                        prompt = `Give a brief, concise answer (1-2 sentences max) to: ${actualPrompt}`;
+                                        // For regular questions, request a very short response
+                                        prompt = `Give a very brief, concise answer (1-2 sentences only) to: ${prompt}`;
                                     } else {
                                         // For -long requests, allow detailed responses
-                                        prompt = `Give a detailed, comprehensive explanation (2-3 paragraphs) for: ${actualPrompt}`;
-                                    }
-                                      const result = await model.generateContent(prompt);
+                                        prompt = `Give a detailed explanation (4-8 sentences in one paragraph) for: ${prompt}`;
+                                    }                                      const result = await model.generateContent(prompt);
                                     let text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
+                                    
+                                    // Add "Why not?" prefix for questions containing "why"
+                                    if (hasWhyQuestion) {
+                                        text = "Why not? " + text;
+                                    }
                                       // Pre-process the text to create optimized chunks
                                     const HEADER_CHUNK_SIZE = 45;  // Reduced to be more conservative
                                     const CONTINUATION_CHUNK_SIZE = 60;  // Reduced to account for font width variations

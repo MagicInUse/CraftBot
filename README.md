@@ -8,7 +8,12 @@ A Node.js application for a multi-server Minecraft chatbot that integrates with 
 - **Gemini AI Integration**: Powered by Google's Gemini 1.5 Flash model for intelligent responses
 - **RCON Communication**: Uses RCON protocol to send messages back to Minecraft servers
 - **Real-time Log Monitoring**: Watches server log files for new chat messages
-- **Message Chunking**: Automatically splits long AI responses to fit Minecraft's chat limits
+- **Smart Message Chunking**: Automatically splits long AI responses to fit Minecraft's chat limits
+- **Response Queueing**: Prevents chat spam by processing one public response at a time
+- **Private Messaging**: `-me` flag for instant private responses that bypass the public queue
+- **Context Flags**: Specialized responses for Minecraft, Tekkit2, and Cobblemon modpacks
+- **Customizable Response Length**: Concise answers by default, detailed with `-long` flag
+- **Beautiful Formatting**: Custom JSON tellraw formatting with `[SERVER][Gem]` branding
 - **Systemd Service Support**: Easy deployment as a Linux system service
 
 ## Project Structure
@@ -156,25 +161,79 @@ node craftbot.js
 
 ## Usage
 
-Once the bot is running and monitoring your servers, players can interact with it by typing messages that start with `@bot` in the Minecraft chat:
+Once the bot is running and monitoring your servers, players can interact with it by typing messages that start with `@gem` in the Minecraft chat.
+
+### Basic Usage
 
 ```
-@bot What's the weather like today?
-@bot How do I make a redstone clock?
-@bot Tell me a joke
+@gem What's the weather like today?
+@gem How do I make a redstone clock?
+@gem Tell me a joke
 ```
+
+### Advanced Features & Flags
+
+The bot supports several flags to customize responses:
+
+#### Response Length
+- **Default**: Concise 1-2 sentence responses
+- **`-long`**: Detailed 4-8 sentence explanations
+
+```
+@gem -long How does redstone work?
+```
+
+#### Context-Specific Help
+- **`-mc`**: Java Minecraft general context
+- **`-t2`**: Tekkit2 modpack context  
+- **`-cm`**: Cobblemon modpack context
+
+```
+@gem -mc How do I make a piston?
+@gem -t2 What's the best power source?
+@gem -cm How do I catch Pokemon?
+```
+
+#### Private Responses
+- **`-me`**: Send response privately to you (bypasses public queue)
+
+```
+@gem -me -long What's the best strategy for this modpack?
+```
+
+#### Help
+- **`-help`**: Show the in-game help guide
+
+```
+@gem -help
+```
+
+### Response Queueing System
+
+**Public Responses**: The bot processes one public response at a time to prevent chat spam. If multiple players ask questions simultaneously, they will be queued and answered in order.
+
+**Private Responses**: Using the `-me` flag sends responses directly to you via whisper/private message and bypasses the public queue for instant replies.
+
+### Special Features
+
+- **"Why" Questions**: Questions containing "why" get a fun "Why not?" prefix
+- **Smart Chunking**: Long responses are automatically split into readable chunks
+- **Beautiful Formatting**: Responses use custom JSON formatting with `[SERVER][Gem]` branding
+
+### How It Works
 
 The bot will:
-1. Detect the message in the server logs
-2. Send a "Thinking..." message to the player
-3. Query the Gemini API with the player's question
-4. Send the AI response back to the Minecraft chat
+1. Detect your message in the server logs
+2. Process flags and context
+3. Query the Gemini API with your question
+4. Send the AI response back to Minecraft chat (public or private)
+5. Queue additional public responses to prevent spam
 
 ## Configuration Options
 
 ### Bot Trigger
 
-By default, the bot responds to messages starting with `@bot`. You can change this by modifying the `BOT_TRIGGER` constant in `craftbot.js`:
+By default, the bot responds to messages starting with `@gem`. You can change this by modifying the `BOT_TRIGGER` constant in `craftbot.js`:
 
 ```javascript
 const BOT_TRIGGER = '@assistant'; // Change to your preferred trigger
@@ -216,7 +275,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
 4. **Bot not responding to messages**
    - Check the console logs for error messages
-   - Verify the bot trigger format (`@bot` by default)
+   - Verify the bot trigger format (`@gem` by default)
    - Ensure the log file regex pattern matches your server's log format
 
 ### Log File Formats

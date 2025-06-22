@@ -23,9 +23,37 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 // Updated to handle both vanilla and modded server log formats
 const CHAT_REGEX = /\[[^\]]+\] \[Server thread\/INFO\](?:\s\[[^\]]+\])?: <(.+?)> (.*)/;
 
+// --- QUEUE SYSTEM FOR PUBLIC RESPONSES ---
+// Only allow one public response at a time, but private responses (-me) bypass the queue
+let isProcessingPublicResponse = false;
+const responseQueue = [];
+
+// --- QUEUE PROCESSING FUNCTION ---
+// Processes the next item in the response queue
+async function processQueue() {
+    if (isProcessingPublicResponse || responseQueue.length === 0) {
+        return;
+    }
+    
+    isProcessingPublicResponse = true;
+    const { rcon, chunks, isLongRequest } = responseQueue.shift();
+    
+    try {
+        await sendOptimizedChunks(rcon, chunks, isLongRequest);
+    } catch (error) {
+        console.error("Error processing queued response:", error);
+    } finally {
+        isProcessingPublicResponse = false;
+        // Process next item in queue if any
+        if (responseQueue.length > 0) {
+            setTimeout(processQueue, 500); // Small delay before next response
+        }
+    }
+}
+
 // --- UTILITY FUNCTION for sending styled messages ---
 // Sends messages with custom JSON formatting like the backup script
-async function sendStyledMessage(rcon, message, showHeader = true) {
+async function sendStyledMessage(rcon, message, showHeader = true, targetPlayer = null) {
     const messageColor = "white";
     const statusText = "Gem";
     
@@ -53,12 +81,17 @@ async function sendStyledMessage(rcon, message, showHeader = true) {
     }
     
     try {
-        await rcon.send(`tellraw @a ${JSON.stringify(jsonPayload)}`);
+        const target = targetPlayer ? targetPlayer : "@a";
+        await rcon.send(`tellraw ${target} ${JSON.stringify(jsonPayload)}`);
     } catch (err) {
         console.error("Failed to send styled message via RCON:", err);
         // Fallback to simple say command
         const prefix = showHeader ? "[SERVER][Gem] " : "";
-        await rcon.send(`say ${prefix}${message}`);
+        if (targetPlayer) {
+            await rcon.send(`msg ${targetPlayer} ${prefix}${message}`);
+        } else {
+            await rcon.send(`say ${prefix}${message}`);
+        }
     }
 }
 
@@ -111,8 +144,8 @@ function smartChunk(text, firstChunkSize, continuationChunkSize) {
 
 // --- UTILITY FUNCTION for sending pre-optimized chunks ---
 // Sends chunks that have already been optimized for character limits
-async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
-    const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
+async function sendOptimizedChunks(rcon, chunks, isLongResponse = false, targetPlayer = null) {
+    const DELAY = isLongResponse ? 2000 : 1000; // Longer delays for better reading pace
     
     for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
@@ -120,7 +153,7 @@ async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
         const isLastChunk = i === chunks.length - 1;
           try {
             // Only show header on first chunk
-            await sendStyledMessage(rcon, chunk, isFirstChunk);
+            await sendStyledMessage(rcon, chunk, isFirstChunk, targetPlayer);
             
             // Add delay between chunks (except after the last one)
             if (!isLastChunk) {
@@ -159,8 +192,7 @@ async function sendCustomHelpMessage(rcon) {
         {"text":" [flags] ","color":"yellow"},
         {"text":"<your question>","color":"white"}
     ];
-    
-    // Flags line 1
+      // Flags line 1
     const flags1Payload = [
         "",
         {"text":"- ","color":"red"},
@@ -179,6 +211,14 @@ async function sendCustomHelpMessage(rcon) {
         {"text":" (Tekkit2) ","color":"gray"},
         {"text":"-cm","color":"light_purple"},
         {"text":" (Cobblemon) ","color":"gray"},
+        {"text":"-me","color":"green"},
+        {"text":" (private)","color":"gray"}
+    ];
+    
+    // Flags line 3
+    const flags3Payload = [
+        "",
+        {"text":"       ","color":"white"},
         {"text":"-help","color":"yellow"},
         {"text":" (this guide)","color":"gray"}
     ];
@@ -189,6 +229,16 @@ async function sendCustomHelpMessage(rcon) {
         {"text":"? ","color":"yellow"},
         {"text":"Example: ","color":"white","bold":true},
         {"text":"'@gem -mc -long what is redstone?'","color":"aqua","italic":true}
+    ];
+    
+    // Queue info line
+    const queuePayload = [
+        "",
+        {"text":"@ ","color":"orange"},
+        {"text":"Note: ","color":"white","bold":true},
+        {"text":"Public responses queue (one at a time). Use ","color":"gray"},
+        {"text":"-me","color":"green"},
+        {"text":" for instant private replies!","color":"gray"}
     ];
     
     // Fun feature line
@@ -209,11 +259,16 @@ async function sendCustomHelpMessage(rcon) {
         
         await rcon.send(`tellraw @a ${JSON.stringify(flags1Payload)}`);
         await new Promise(resolve => setTimeout(resolve, delay));
+          await rcon.send(`tellraw @a ${JSON.stringify(flags2Payload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
         
-        await rcon.send(`tellraw @a ${JSON.stringify(flags2Payload)}`);
+        await rcon.send(`tellraw @a ${JSON.stringify(flags3Payload)}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await rcon.send(`tellraw @a ${JSON.stringify(examplePayload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        await rcon.send(`tellraw @a ${JSON.stringify(queuePayload)}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await rcon.send(`tellraw @a ${JSON.stringify(funPayload)}`);
@@ -279,13 +334,13 @@ async function main() {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
                             console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
                             (async () => {
-                                try {
-                                    // Check for flags
+                                try {                                    // Check for flags
                                     const isLongRequest = userPrompt.toLowerCase().includes('-long');
                                     const isMcRequest = userPrompt.toLowerCase().includes('-mc');
                                     const isT2Request = userPrompt.toLowerCase().includes('-t2');
                                     const isCmRequest = userPrompt.toLowerCase().includes('-cm');
                                     const isHelpRequest = userPrompt.toLowerCase().includes('-help');
+                                    const isMeRequest = userPrompt.toLowerCase().includes('-me');
                                     const hasWhyQuestion = userPrompt.toLowerCase().includes('why');
                                       // Handle help request
                                     if (isHelpRequest) {
@@ -293,13 +348,13 @@ async function main() {
                                         await sendCustomHelpMessage(rcon);
                                         return;
                                     }
-                                    
-                                    // Remove all flags from the prompt
+                                      // Remove all flags from the prompt
                                     let actualPrompt = userPrompt
                                         .replace(/-long/gi, '')
                                         .replace(/-mc/gi, '')
                                         .replace(/-t2/gi, '')
                                         .replace(/-cm/gi, '')
+                                        .replace(/-me/gi, '')
                                         .trim();
                                     
                                     // Build the prompt with context
@@ -330,11 +385,17 @@ async function main() {
                                     const HEADER_CHUNK_SIZE = 45;  // Reduced to be more conservative
                                     const CONTINUATION_CHUNK_SIZE = 60;  // Reduced to account for font width variations
                                     const optimizedChunks = smartChunk(text, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);
-                                    
-                                    console.log(`[${serverConfig.name}] Gemini Response chunks:`, optimizedChunks);
+                                      console.log(`[${serverConfig.name}] Gemini Response chunks:`, optimizedChunks);
 
-                                    // Send the optimized chunks
-                                    await sendOptimizedChunks(rcon, optimizedChunks, isLongRequest);                                } catch (error) {
+                                    // Handle response delivery based on -me flag
+                                    if (isMeRequest) {
+                                        // Private response: send directly to the player, bypassing queue
+                                        await sendOptimizedChunks(rcon, optimizedChunks, isLongRequest, playerName);
+                                    } else {
+                                        // Public response: add to queue
+                                        responseQueue.push({ rcon, chunks: optimizedChunks, isLongRequest });
+                                        processQueue(); // Start processing if not already busy
+                                    }} catch (error) {
                                     console.error(`[${serverConfig.name}] Gemini API Error:`, error);
                                     await sendStyledMessage(rcon, "I had a problem thinking about that. Please try again.");
                                 }

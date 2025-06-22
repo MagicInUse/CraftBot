@@ -190,13 +190,21 @@ async function main() {
                             (async () => {
                                 try {
                                     // Send thinking message
-                                    await sendStyledMessage(rcon, "Thinking...", true);
-                                      // Check for flags
+                                    await sendStyledMessage(rcon, "Thinking...", true);                                      // Check for flags
                                     const isLongRequest = userPrompt.toLowerCase().includes('-long');
                                     const isMcRequest = userPrompt.toLowerCase().includes('-mc');
                                     const isT2Request = userPrompt.toLowerCase().includes('-t2');
                                     const isCmRequest = userPrompt.toLowerCase().includes('-cm');
+                                    const isHelpRequest = userPrompt.toLowerCase().includes('-help');
                                     const hasWhyQuestion = userPrompt.toLowerCase().includes('why');
+                                    
+                                    // Handle help request
+                                    if (isHelpRequest) {
+                                        const helpText = "CraftBot Help: Use @gem followed by your question. Flags: -long (detailed response), -mc (Minecraft general), -t2 (Tekkit2), -cm (Cobblemon), -help (this message). Example: '@gem -mc -long what is redstone?' Ask 'why' questions for a fun response!";
+                                        const helpChunks = smartChunk(helpText, 45, 60);
+                                        await sendOptimizedChunks(rcon, helpChunks, false);
+                                        return;
+                                    }
                                     
                                     // Remove all flags from the prompt
                                     let actualPrompt = userPrompt

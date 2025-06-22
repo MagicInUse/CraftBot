@@ -63,19 +63,53 @@ async function sendStyledMessage(rcon, message, isThinking = false, showHeader =
 }
 
 // --- UTILITY FUNCTION for smart word-aware chunking ---
-// Splits text without breaking words, and handles continuation properly
+// Splits text into short, readable lines that won't overwhelm chat
 function smartChunk(text, chunkSize) {
-    const words = text.split(' ');
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const chunks = [];
     let currentChunk = '';
     
-    for (const word of words) {
-        // Check if adding this word would exceed the chunk size
-        if (currentChunk.length + word.length + 1 > chunkSize && currentChunk.length > 0) {
-            chunks.push(currentChunk.trim());
-            currentChunk = word;
+    for (let sentence of sentences) {
+        sentence = sentence.trim();
+        if (!sentence) continue;
+        
+        // Add punctuation back (except for the last sentence)
+        if (!sentence.match(/[.!?]$/)) {
+            sentence += '.';
+        }
+        
+        // If the sentence is too long by itself, split it further
+        if (sentence.length > chunkSize) {
+            // If current chunk has content, save it first
+            if (currentChunk.trim()) {
+                chunks.push(currentChunk.trim());
+                currentChunk = '';
+            }
+            
+            // Split long sentence by words
+            const words = sentence.split(' ');
+            let wordChunk = '';
+            
+            for (const word of words) {
+                if (wordChunk.length + word.length + 1 > chunkSize && wordChunk.length > 0) {
+                    chunks.push(wordChunk.trim());
+                    wordChunk = word;
+                } else {
+                    wordChunk += (wordChunk ? ' ' : '') + word;
+                }
+            }
+            
+            if (wordChunk.trim()) {
+                chunks.push(wordChunk.trim());
+            }
         } else {
-            currentChunk += (currentChunk ? ' ' : '') + word;
+            // Check if adding this sentence would exceed chunk size
+            if (currentChunk.length + sentence.length + 1 > chunkSize && currentChunk.length > 0) {
+                chunks.push(currentChunk.trim());
+                currentChunk = sentence;
+            } else {
+                currentChunk += (currentChunk ? ' ' : '') + sentence;
+            }
         }
     }
     
@@ -88,10 +122,10 @@ function smartChunk(text, chunkSize) {
 }
 
 // --- UTILITY FUNCTION for sending long messages ---
-// Minecraft chat has a character limit, so this splits long responses intelligently
+// Minecraft chat optimized for readability with proper pacing
 async function sendLongMessage(rcon, message, isLongResponse = false) {
-    const CHUNK_SIZE = 80; // Character limit per message
-    const DELAY = isLongResponse ? 2000 : 500; // Longer delay for -long responses
+    const CHUNK_SIZE = 45; // Much smaller chunks for better readability
+    const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
     
     const chunks = smartChunk(message, CHUNK_SIZE);
     

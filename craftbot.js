@@ -109,35 +109,6 @@ function smartChunk(text, firstChunkSize, continuationChunkSize) {
     return chunks;
 }
 
-// --- UTILITY FUNCTION for sending long messages ---
-// Minecraft chat optimized for readability with proper pacing
-async function sendLongMessage(rcon, message, isLongResponse = false) {
-    // Header line needs space for "[SERVER][Gem]: " which is about 16 characters
-    const HEADER_CHUNK_SIZE = 62; // First line with header - optimized based on chat analysis
-    const CONTINUATION_CHUNK_SIZE = 78; // Continuation lines - optimized for full chat width
-    const DELAY = isLongResponse ? 3000 : 1500; // Longer delays for better reading pace
-    
-    const chunks = smartChunk(message, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);
-    
-    for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const isFirstChunk = i === 0;
-        const isLastChunk = i === chunks.length - 1;
-        
-        try {
-            // Only show header on first chunk
-            await sendStyledMessage(rcon, chunk, false, isFirstChunk);
-            
-            // Add delay between chunks (except after the last one)
-            if (!isLastChunk) {
-                await new Promise(resolve => setTimeout(resolve, DELAY));
-            }
-        } catch (err) {
-            console.error("Failed to send message chunk via RCON:", err);
-        }
-    }
-}
-
 // --- UTILITY FUNCTION for sending pre-optimized chunks ---
 // Sends chunks that have already been optimized for character limits
 async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
@@ -241,8 +212,8 @@ async function main() {
                                       const result = await model.generateContent(prompt);
                                     let text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
                                       // Pre-process the text to create optimized chunks
-                                    const HEADER_CHUNK_SIZE = 50;  // Reduced to be more conservative
-                                    const CONTINUATION_CHUNK_SIZE = 65;  // Reduced to account for font width variations
+                                    const HEADER_CHUNK_SIZE = 45;  // Reduced to be more conservative
+                                    const CONTINUATION_CHUNK_SIZE = 60;  // Reduced to account for font width variations
                                     const optimizedChunks = smartChunk(text, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);
                                     
                                     console.log(`[${serverConfig.name}] Gemini Response chunks:`, optimizedChunks);

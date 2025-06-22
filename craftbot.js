@@ -240,10 +240,9 @@ async function main() {
                                     }
                                       const result = await model.generateContent(prompt);
                                     let text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
-                                    
-                                    // Pre-process the text to create optimized chunks
-                                    const HEADER_CHUNK_SIZE = 62;
-                                    const CONTINUATION_CHUNK_SIZE = 78;
+                                      // Pre-process the text to create optimized chunks
+                                    const HEADER_CHUNK_SIZE = 50;  // Reduced to be more conservative
+                                    const CONTINUATION_CHUNK_SIZE = 65;  // Reduced to account for font width variations
                                     const optimizedChunks = smartChunk(text, HEADER_CHUNK_SIZE, CONTINUATION_CHUNK_SIZE);
                                     
                                     console.log(`[${serverConfig.name}] Gemini Response chunks:`, optimizedChunks);

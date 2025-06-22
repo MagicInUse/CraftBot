@@ -133,6 +133,90 @@ async function sendOptimizedChunks(rcon, chunks, isLongResponse = false) {
     }
 }
 
+// --- UTILITY FUNCTION for sending custom styled help message ---
+// Sends a beautifully formatted help message with colors and styling
+async function sendCustomHelpMessage(rcon) {
+    const delay = 1000; // 1 second delay between help lines
+    
+    // Header line
+    const headerPayload = [
+        "",
+        {"text":"[","color":"gold"},
+        {"text":"SERVER","color":"gray"},
+        {"text":"]","color":"gold"},
+        {"text":"[","color":"gray"},
+        {"text":"Gem","color":"aqua"},
+        {"text":"]:","color":"gray"},
+        {"text":" ","color":"gray"},
+        {"text":"✨ ","color":"yellow"},
+        {"text":"CraftBot Help Guide","color":"light_purple","bold":true},
+        {"text":" ✨","color":"yellow"}
+    ];
+    
+    // Usage line
+    const usagePayload = [
+        "",
+        {"text":"💎 ","color":"aqua"},
+        {"text":"Usage: ","color":"white","bold":true},
+        {"text":"@gem","color":"green","bold":true},
+        {"text":" [flags] ","color":"yellow"},
+        {"text":"<your question>","color":"white"}
+    ];
+    
+    // Flags line
+    const flagsPayload = [
+        "",
+        {"text":"🚩 ","color":"red"},
+        {"text":"Flags: ","color":"white","bold":true},
+        {"text":"-long","color":"gold"},
+        {"text":" (detailed) ","color":"gray"},
+        {"text":"-mc","color":"green"},
+        {"text":" (Minecraft) ","color":"gray"},
+        {"text":"-t2","color":"blue"},
+        {"text":" (Tekkit2) ","color":"gray"},
+        {"text":"-cm","color":"light_purple"},
+        {"text":" (Cobblemon)","color":"gray"}
+    ];
+    
+    // Example line
+    const examplePayload = [
+        "",
+        {"text":"📝 ","color":"yellow"},
+        {"text":"Example: ","color":"white","bold":true},
+        {"text":"'@gem -mc -long what is redstone?'","color":"aqua","italic":true}
+    ];
+    
+    // Fun feature line
+    const funPayload = [
+        "",
+        {"text":"🎉 ","color":"gold"},
+        {"text":"Fun Tip: ","color":"white","bold":true},
+        {"text":"Ask ","color":"gray"},
+        {"text":"'why'","color":"yellow","bold":true},
+        {"text":" questions for a surprise!","color":"gray"}
+    ];
+    
+    try {
+        await rcon.send(`tellraw @a ${JSON.stringify(headerPayload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        await rcon.send(`tellraw @a ${JSON.stringify(usagePayload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        await rcon.send(`tellraw @a ${JSON.stringify(flagsPayload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        await rcon.send(`tellraw @a ${JSON.stringify(examplePayload)}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        await rcon.send(`tellraw @a ${JSON.stringify(funPayload)}`);
+    } catch (err) {
+        console.error("Failed to send custom help message via RCON:", err);
+        // Fallback to simple help
+        await sendStyledMessage(rcon, "CraftBot Help: Use @gem with your questions. Try -help for more info!");
+    }
+}
+
 // --- MAIN MULTI-SERVER LOGIC ---
 async function main() {
     console.log("Starting multi-server chatbot...");
@@ -197,12 +281,10 @@ async function main() {
                                     const isCmRequest = userPrompt.toLowerCase().includes('-cm');
                                     const isHelpRequest = userPrompt.toLowerCase().includes('-help');
                                     const hasWhyQuestion = userPrompt.toLowerCase().includes('why');
-                                    
-                                    // Handle help request
+                                      // Handle help request
                                     if (isHelpRequest) {
-                                        const helpText = "CraftBot Help: Use @gem followed by your question. Flags: -long (detailed response), -mc (Minecraft general), -t2 (Tekkit2), -cm (Cobblemon), -help (this message). Example: '@gem -mc -long what is redstone?' Ask 'why' questions for a fun response!";
-                                        const helpChunks = smartChunk(helpText, 45, 60);
-                                        await sendOptimizedChunks(rcon, helpChunks, false);
+                                        // Send custom styled help message with colors
+                                        await sendCustomHelpMessage(rcon);
                                         return;
                                     }
                                     

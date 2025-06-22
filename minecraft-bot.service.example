@@ -6,8 +6,8 @@ After=network.target
 Type=simple
 User=your_user
 Group=your_user_group
-WorkingDirectory=%h/CraftBot
-ExecStart=%h/CraftBot/start.sh
+WorkingDirectory=/home/your_user/CraftBot
+ExecStart=/usr/bin/node /home/your_user/CraftBot/craftbot.js
 Restart=on-failure
 RestartSec=5
 

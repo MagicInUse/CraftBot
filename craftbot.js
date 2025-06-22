@@ -6,16 +6,6 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { Rcon } = require('rcon-client');
 const chokidar = require('chokidar');
 const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
-// --- UTILITY FUNCTION to expand tilde paths ---
-function expandTilde(filepath) {
-    if (filepath.charAt(0) === '~') {
-        return path.join(os.homedir(), filepath.slice(1));
-    }
-    return filepath;
-}
 
 // --- LOAD CONFIGURATION ---
 const config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'));
@@ -57,16 +47,13 @@ async function main() {
     // Loop through each server in the config file and set it up
     for (const serverConfig of config.servers) {
         console.log(`[${serverConfig.name}] Initializing...`);        try {
-            // Expand tilde in log path
-            const expandedLogPath = expandTilde(serverConfig.logPath);
-            
             // Check if the log file exists before proceeding
-            if (!fs.existsSync(expandedLogPath)) {
-                throw new Error(`Log file not found at: ${expandedLogPath}`);
+            if (!fs.existsSync(serverConfig.logPath)) {
+                throw new Error(`Log file not found at: ${serverConfig.logPath}`);
             }
 
             // Store file size to only read new lines
-            let lastSize = fs.statSync(expandedLogPath).size;
+            let lastSize = fs.statSync(serverConfig.logPath).size;
 
             // Connect to this server's RCON
             const rcon = await Rcon.connect({
@@ -74,10 +61,8 @@ async function main() {
                 port: serverConfig.rconPort,
                 password: serverConfig.rconPassword,
             });            console.log(`[${serverConfig.name}] RCON connected. Watching log file.`);
-            rcon.on('error', (err) => console.error(`[${serverConfig.name}] RCON Error:`, err));
-
-            // Create a dedicated watcher for this server's log file
-            const watcher = chokidar.watch(expandedLogPath, { persistent: true, usePolling: true });
+            rcon.on('error', (err) => console.error(`[${serverConfig.name}] RCON Error:`, err));            // Create a dedicated watcher for this server's log file
+            const watcher = chokidar.watch(serverConfig.logPath, { persistent: true, usePolling: true });
 
             watcher.on('change', (filePath) => {
                 const stats = fs.statSync(filePath);

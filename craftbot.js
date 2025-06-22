@@ -23,17 +23,50 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 // Updated to handle both vanilla and modded server log formats
 const CHAT_REGEX = /\[[^\]]+\] \[Server thread\/INFO\](?:\s\[[^\]]+\])?: <(.+?)> (.*)/;
 
+// --- UTILITY FUNCTION for sending styled messages ---
+// Sends messages with custom JSON formatting like the backup script
+async function sendStyledMessage(rcon, message, isThinking = false) {
+    const messageColor = isThinking ? "gray" : "white";
+    const statusText = isThinking ? "Thinking" : "Gem";
+    
+    // Build JSON payload similar to your backup script format
+    const jsonPayload = [
+        "",
+        {"text":"[","color":"gold"},
+        {"text":"SERVER","color":"gray"},
+        {"text":"]","color":"gold"},
+        {"text":"[","color":"gray"},
+        {"text":statusText,"color":"aqua"},
+        {"text":"]:","color":"gray"},
+        {"text":" ","color":"gray"},
+        {"text":message,"color":messageColor}
+    ];
+    
+    try {
+        await rcon.send(`tellraw @a ${JSON.stringify(jsonPayload)}`);
+    } catch (err) {
+        console.error("Failed to send styled message via RCON:", err);
+        // Fallback to simple say command
+        await rcon.send(`say [SERVER][Gem] ${message}`);
+    }
+}
+
 // --- UTILITY FUNCTION for sending long messages ---
 // Minecraft chat has a character limit, so this splits long responses.
 async function sendLongMessage(rcon, message) {
-    const CHUNK_SIZE = 100;
-    const prefix = "[Bot] ";
+    const CHUNK_SIZE = 80; // Reduced from 100 for better chat readability
     const chunks = message.match(new RegExp(`.{1,${CHUNK_SIZE}}`, 'g')) || [];
-    for (const chunk of chunks) {
+    
+    for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const isLastChunk = i === chunks.length - 1;
+        
         try {
-            await rcon.send(`say ${prefix}${chunk}`);
+            await sendStyledMessage(rcon, chunk);
             // Add a small delay to prevent spamming the chat and to ensure message order
-            await new Promise(resolve => setTimeout(resolve, 300));
+            if (!isLastChunk) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
         } catch (err) {
             console.error("Failed to send message chunk via RCON:", err);
         }
@@ -88,19 +121,29 @@ async function main() {
                     const match = line.match(CHAT_REGEX);
                     if (match) {
                         const playerName = match[1];
-                        const message = match[2].trim();
-
-                        // Check for the bot trigger
+                        const message = match[2].trim();                        // Check for the bot trigger
                         if (message.toLowerCase().startsWith(BOT_TRIGGER)) {
                             const userPrompt = message.substring(BOT_TRIGGER.length).trim();
                             console.log(`[${serverConfig.name}] Received prompt from ${playerName}: "${userPrompt}"`);
 
-                            rcon.send(`tellraw ${playerName} {"text":"[Bot] Thinking...", "color":"gray", "italic":true}`);
-
-                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop
-                            (async () => {
+                            // Use an async IIFE to handle the Gemini call without blocking the file-watching loop                            (async () => {
                                 try {
-                                    const result = await model.generateContent(userPrompt);
+                                    // Send thinking message
+                                    await sendStyledMessage(rcon, "Thinking...", true);
+                                    
+                                    // Check if user is asking for more details
+                                    const isMoreRequest = /\b(more|detail|explain|elaborate|longer)\b/i.test(userPrompt);
+                                    
+                                    let prompt = userPrompt;
+                                    if (!isMoreRequest) {
+                                        // For regular questions, request a short response
+                                        prompt = `Give a brief, concise answer (1-2 sentences max) to: ${userPrompt}. If more detail would be helpful, end with "Type '@gem more' for details."`;
+                                    } else {
+                                        // For "more" requests, allow longer responses
+                                        prompt = `Give a detailed explanation for: ${userPrompt}`;
+                                    }
+                                    
+                                    const result = await model.generateContent(prompt);
                                     const text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
                                     console.log(`[${serverConfig.name}] Gemini Response: "${text}"`);
 
@@ -108,7 +151,7 @@ async function main() {
                                     await sendLongMessage(rcon, text);
                                 } catch (error) {
                                     console.error(`[${serverConfig.name}] Gemini API Error:`, error);
-                                    rcon.send(`say [Bot] I had a problem thinking about that. Please try again.`);
+                                    await sendStyledMessage(rcon, "I had a problem thinking about that. Please try again.");
                                 }
                             })();
                         }

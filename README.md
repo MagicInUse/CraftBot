@@ -6,7 +6,7 @@ A Node.js application for a multi-server Minecraft chatbot that integrates with 
 
 - **Multi-Server Support**: Monitor and respond to multiple Minecraft servers simultaneously
 - **Gemini AI Integration**: Powered by Google's Gemini 1.5 Flash model for intelligent responses
-- **RCON Communication**: Uses RCON protocol to send messages back to Minecraft servers
+- **Robust RCON Communication**: Auto-reconnecting RCON with exponential backoff for server restarts
 - **Real-time Log Monitoring**: Watches server log files for new chat messages
 - **Smart Message Chunking**: Automatically splits long AI responses to fit Minecraft's chat limits
 - **Response Queueing**: Prevents chat spam by processing one public response at a time
@@ -75,18 +75,29 @@ Edit `config.json` to add your Minecraft servers:
       "logPath": "/path/to/your/survival-server/logs/latest.log",
       "rconHost": "localhost",
       "rconPort": 25575,
-      "rconPassword": "your_survival_rcon_password"
+      "rconPassword": "your_survival_rcon_password",
+      "chatRegex": "\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)"
     },
     {
       "name": "Creative",
       "logPath": "/path/to/your/creative-server/logs/latest.log",
       "rconHost": "localhost",
       "rconPort": 25585,
-      "rconPassword": "your_creative_rcon_password"
+      "rconPassword": "your_creative_rcon_password",
+      "chatRegex": "\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)"
     }
   ]
 }
 ```
+
+**Configuration Options:**
+
+- **`name`**: Friendly name for the server (used in console logs)
+- **`logPath`**: Full path to the server's latest.log file
+- **`rconHost`**: RCON server hostname (usually "localhost")
+- **`rconPort`**: RCON port number (set in server.properties)
+- **`rconPassword`**: RCON password (set in server.properties)
+- **`chatRegex`**: Regular expression to match chat messages in logs (optional)
 
 ### 4. Enable RCON on Your Minecraft Servers
 
@@ -277,29 +288,95 @@ The bot will:
 
 ## Configuration Options
 
-### Bot Trigger
+CraftBot now features comprehensive configuration through the `config.json` file. All major settings can be customized without editing code.
 
-By default, the bot responds to messages starting with `@gem`. You can change this by modifying the `BOT_TRIGGER` constant in `craftbot.js`:
+### Global Configuration
 
-```javascript
-const BOT_TRIGGER = '@assistant'; // Change to your preferred trigger
+The `global` section in `config.json` contains bot-wide settings:
+
+```json
+{
+  "global": {
+    "botTrigger": "@gem",
+    "geminiModel": "gemini-1.5-flash",
+    "botName": "Gem",
+    "chunkSizes": {
+      "headerChunk": 45,
+      "continuationChunk": 60
+    },
+    "delays": {
+      "regularResponse": 1000,
+      "longResponse": 2000,
+      "queueDelay": 500,
+      "helpMessageDelay": 1000
+    },
+    "reconnect": {
+      "initialInterval": 15000,
+      "maxInterval": 300000
+    },
+    "styling": {
+      "messageColor": "white",
+      "headerColors": {
+        "bracket": "gold",
+        "serverText": "gray",
+        "botName": "aqua",
+        "separator": "gray"
+      },
+      "helpColors": {
+        "title": "light_purple",
+        "accent": "yellow",
+        "usage": "green",
+        "flags": "gold",
+        "example": "aqua",
+        "note": "orange",
+        "tip": "gold"
+      }
+    },
+    "messages": {
+      "helpTitle": "CraftBot Help Guide",
+      "usageExample": "Usage: {trigger} [flags] <your question>",
+      "exampleCommand": "'{trigger} -mc -long what is redstone?'",
+      "queueNote": "Public responses queue (one at a time). Use -me for instant private replies!",
+      "funTip": "Always ask why!",
+      "fallbackHelp": "CraftBot Help: Use {trigger} with your questions. Try -help for more info!"
+    }
+  }
+}
 ```
 
-### Message Chunk Size
+### Configuration Reference
 
-Long AI responses are automatically split into chunks. You can adjust the chunk size by modifying the `CHUNK_SIZE` constant:
+#### Bot Behavior
+- **`botTrigger`**: Command prefix to activate the bot (default: `@gem`)
+- **`geminiModel`**: Which Gemini model to use (`gemini-1.5-flash`, `gemini-1.5-pro`, etc.)
+- **`botName`**: Display name in chat headers and messages
 
-```javascript
-const CHUNK_SIZE = 150; // Increase for longer message chunks
-```
+#### Message Formatting
+- **`chunkSizes.headerChunk`**: Max characters for first message chunk (includes header)
+- **`chunkSizes.continuationChunk`**: Max characters for continuation chunks
+- **`delays.regularResponse`**: Milliseconds between regular message chunks
+- **`delays.longResponse`**: Milliseconds between long response chunks  
+- **`delays.queueDelay`**: Milliseconds between queued responses
+- **`delays.helpMessageDelay`**: Milliseconds between help message lines
 
-### Gemini Model
+#### Connection Management
+- **`reconnect.initialInterval`**: Starting reconnect delay in milliseconds
+- **`reconnect.maxInterval`**: Maximum reconnect delay in milliseconds
 
-You can change the Gemini model by modifying the model initialization:
+#### Visual Styling
+- **`styling.messageColor`**: Color for main message content
+- **`styling.headerColors`**: Colors for message headers (`[SERVER][BotName]:`)
+- **`styling.helpColors`**: Colors for different parts of help messages
 
-```javascript
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-```
+#### Custom Messages
+- **`messages`**: Customizable text for help messages and responses
+- Use `{trigger}` placeholder in messages to insert the configured bot trigger
+
+### Per-Server Configuration
+
+Each server in the `servers` array can have individual settings:
+
+- **`chatRegex`**: Custom regex pattern for parsing chat messages from logs
 
 ## Troubleshooting
 
@@ -313,25 +390,57 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
    - Check that RCON is enabled in `server.properties`
    - Verify the RCON port and password are correct
    - Ensure the RCON ports are not blocked by firewall
+   - **Note**: The bot automatically reconnects if RCON drops during server restarts/backups
 
-3. **Gemini API errors**
+3. **Server restart/backup disconnections**
+   - The bot includes automatic RCON reconnection with exponential backoff
+   - Starts reconnecting after 15 seconds, doubles interval up to 5 minutes
+   - No manual intervention needed - it will reconnect automatically
+
+4. **Gemini API errors**
    - Verify your API key is correct in the `.env` file
    - Check your API quota and billing status
    - Ensure you have internet connectivity
 
-4. **Bot not responding to messages**
+5. **Bot not responding to messages**
    - Check the console logs for error messages
    - Verify the bot trigger format (`@gem` by default)
    - Ensure the log file regex pattern matches your server's log format
 
-### Log File Formats
+### Log File Formats & Custom Regex
 
-The bot expects Minecraft server logs in this format:
+The bot supports configurable chat message detection per server using the `chatRegex` field in your configuration.
+
+**Default Format** (works for most vanilla and modded servers):
 ```
 [Server thread/INFO]: <PlayerName> message content
+[Server thread/INFO] [ModName]: <PlayerName> message content
 ```
 
-If your server uses a different format, you may need to adjust the `CHAT_REGEX` pattern in `craftbot.js`.
+**Default Regex Pattern**:
+```
+\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)
+```
+
+**Custom Log Formats**: If your server uses a different log format, add a custom `chatRegex` pattern to each server configuration:
+
+```json
+{
+  "name": "CustomServer",
+  "logPath": "/path/to/logs/latest.log",
+  "rconHost": "localhost", 
+  "rconPort": 25575,
+  "rconPassword": "password",
+  "chatRegex": "your_custom_regex_pattern_here"
+}
+```
+
+**Common Alternative Patterns**:
+- **Paper/Spigot**: `\\[\\d{2}:\\d{2}:\\d{2}\\] \\[Server thread\\/INFO\\]: <(.+?)> (.*)`
+- **Fabric**: `\\[[^\\]]+\\] \\[ServerMain\\/INFO\\]: <(.+?)> (.*)`
+- **Forge**: `\\[[^\\]]+\\] \\[Server thread\\/INFO\\] \\[[^\\]]+\\]: <(.+?)> (.*)`
+
+**Regex Testing**: The `test-config.js` script validates your regex patterns and tests them against sample log formats.
 
 ## Security Considerations
 

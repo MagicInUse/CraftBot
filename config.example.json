@@ -1,25 +1,73 @@
 {
+  "global": {
+    "botTrigger": "@gem",
+    "geminiModel": "gemini-1.5-flash",
+    "botName": "Gem",
+    "chunkSizes": {
+      "headerChunk": 45,
+      "continuationChunk": 60
+    },
+    "delays": {
+      "regularResponse": 1000,
+      "longResponse": 2000,
+      "queueDelay": 500,
+      "helpMessageDelay": 1000
+    },
+    "reconnect": {
+      "initialInterval": 15000,
+      "maxInterval": 300000
+    },
+    "styling": {
+      "messageColor": "white",
+      "headerColors": {
+        "bracket": "gold",
+        "serverText": "gray",
+        "botName": "aqua",
+        "separator": "gray"
+      },
+      "helpColors": {
+        "title": "light_purple",
+        "accent": "yellow",
+        "usage": "green",
+        "flags": "gold",
+        "example": "aqua",
+        "note": "orange",
+        "tip": "gold"
+      }
+    },
+    "messages": {
+      "helpTitle": "CraftBot Help Guide",
+      "usageExample": "Usage: {trigger} [flags] <your question>",
+      "exampleCommand": "'{trigger} -mc -long what is redstone?'",
+      "queueNote": "Public responses queue (one at a time). Use -me for instant private replies!",
+      "funTip": "Always ask why!",
+      "fallbackHelp": "CraftBot Help: Use {trigger} with your questions. Try -help for more info!"
+    }
+  },
   "servers": [
     {
       "name": "Survival",
       "logPath": "/full/path/to/your/survival-server/logs/latest.log",
       "rconHost": "localhost",
       "rconPort": 25575,
-      "rconPassword": "your_survival_rcon_password"
+      "rconPassword": "your_survival_rcon_password",
+      "chatRegex": "\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)"
     },
     {
       "name": "Creative",
       "logPath": "/full/path/to/your/creative-server/logs/latest.log",
       "rconHost": "localhost",
       "rconPort": 25585,
-      "rconPassword": "your_creative_rcon_password"
+      "rconPassword": "your_creative_rcon_password",
+      "chatRegex": "\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)"
     },
     {
       "name": "Modded",
       "logPath": "/full/path/to/your/modded-server/logs/latest.log",
       "rconHost": "localhost",
       "rconPort": 25595,
-      "rconPassword": "your_modded_rcon_password"
+      "rconPassword": "your_modded_rcon_password",
+      "chatRegex": "\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)"
     }
   ]
 }

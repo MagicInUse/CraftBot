@@ -22,8 +22,7 @@ console.log('\n2. Testing server configuration...');
 try {
     const config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'));
     console.log(`   ✅ Found ${config.servers.length} server(s) in config`);
-    
-    config.servers.forEach((server, index) => {
+      config.servers.forEach((server, index) => {
         console.log(`   Server ${index + 1}: ${server.name}`);
         
         // Check log path
@@ -32,6 +31,24 @@ try {
         } else {
             console.log(`     ❌ Log file not found: ${server.logPath}`);
             console.log(`     → Please update the logPath in config.json`);
+        }
+        
+        // Check chat regex pattern
+        try {
+            const regex = new RegExp(server.chatRegex || "\\[[^\\]]+\\] \\[Server thread\\/INFO\\](?:\\s\\[[^\\]]+\\])?: <(.+?)> (.*)");
+            console.log(`     ✅ Chat regex pattern is valid`);
+            
+            // Test regex with sample log lines
+            const sampleVanilla = "[12:34:56] [Server thread/INFO]: <TestPlayer> hello world";
+            const sampleModded = "[12:34:56] [Server thread/INFO] [SomeModName]: <TestPlayer> hello world";
+            
+            if (regex.test(sampleVanilla) || regex.test(sampleModded)) {
+                console.log(`     ✅ Regex pattern matches expected log formats`);
+            } else {
+                console.log(`     ⚠️  Regex pattern may not match standard log formats`);
+            }
+        } catch (regexError) {
+            console.log(`     ❌ Invalid chat regex pattern: ${regexError.message}`);
         }
         
         // Check if using default values

@@ -455,7 +455,7 @@ ISC
 
 ## Author
 
-MagicInUse
+Jacob Norr [MagicInUse](https://github.com/MagicInUse)
 
 ## Contributing
 

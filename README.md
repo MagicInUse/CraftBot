@@ -21,13 +21,15 @@ A Node.js application for a multi-server Minecraft chatbot that integrates with 
 ```
 CraftBot/
 ├── package.json                    # Project dependencies and metadata
-├── .env                           # Environment variables (API keys)
-├── config.json                    # Server configurations (working file)
+├── .env                           # Environment variables (API keys) - create from .env.example
+├── .env.example                   # Example environment variables template
+├── config.json                    # Server configurations (working file) - create from config.example.json
 ├── config.example.json            # Example server configuration template
 ├── craftbot.js                    # Main application logic
-├── minecraft-bot.service          # Systemd service file (working file)
+├── minecraft-bot.service          # Systemd service file (working file) - create from .service.example
 ├── minecraft-bot.service.example  # Example systemd service template
 ├── test-config.js                 # Configuration validation script
+├── preview.png                    # Screenshot of bot help message in Minecraft
 ├── .gitignore                     # Git ignore rules
 ├── LICENSE                        # License file
 └── README.md                      # This file
@@ -49,7 +51,13 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Edit the `.env` file and add your Gemini API key:
+Copy the example environment file and add your Gemini API key:
+
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file with your actual API key:
 
 ```env
 GEMINI_API_KEY="your_actual_gemini_api_key_here"

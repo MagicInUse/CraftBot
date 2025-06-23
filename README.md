@@ -2,6 +2,8 @@
 
 A Node.js application for a multi-server Minecraft chatbot that integrates with the Gemini API. This bot monitors multiple Minecraft server log files and responds to chat messages using Google's Gemini AI.
 
+![CraftBot Help Guide Preview](preview.png)
+
 ## Features
 
 - **Multi-Server Support**: Monitor and respond to multiple Minecraft servers simultaneously

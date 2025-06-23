@@ -344,6 +344,18 @@ The `global` section in `config.json` contains bot-wide settings:
 }
 ```
 
+### Visual Example - CraftBot Help Guide
+
+Here's how the help message appears in Minecraft chat with the default styling configuration:
+
+![CraftBot Help Guide Preview](preview.png)
+
+The screenshot above shows the colorful, multi-line help guide that players see when they type `@gem -help`. Notice how the configuration's color settings create a beautiful, easy-to-read display with:
+- **Gold brackets** around `[SERVER]`
+- **Aqua bot name** for `[Gem]`
+- **Color-coded sections** for different types of information
+- **Proper spacing and formatting** for readability
+
 ### Configuration Reference
 
 #### Bot Behavior

@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 const fs = require('fs');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
 console.log('CraftBot Configuration Test');
 console.log('===========================\n');
@@ -69,11 +69,13 @@ console.log('\n3. Testing Gemini API connection...');
 if (apiKey && apiKey !== "I will do this later - redacted for now") {
     (async () => {
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const genAI = new GoogleGenAI({ apiKey: apiKey });
             
-            const result = await model.generateContent("Say 'Hello from CraftBot test!'");
-            const response = result.response.text();
+            const result = await genAI.models.generateContent({
+                model: "gemini-2.0-flash-001",
+                contents: "Say 'Hello from CraftBot test!'"
+            });
+            const response = result.text;
             console.log('   ✅ Gemini API connection successful');
             console.log(`   Response: ${response.substring(0, 50)}...`);
         } catch (error) {
@@ -90,7 +92,7 @@ if (apiKey && apiKey !== "I will do this later - redacted for now") {
 // Test 4: Check dependencies
 console.log('\n4. Testing dependencies...');
 try {
-    require('@google/generative-ai');
+    require('@google/genai');
     require('chokidar');
     require('dotenv');
     require('rcon-client');

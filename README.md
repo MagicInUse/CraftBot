@@ -7,7 +7,7 @@ A Node.js application for a multi-server Minecraft chatbot that integrates with 
 ## Features
 
 - **Multi-Server Support**: Monitor and respond to multiple Minecraft servers simultaneously
-- **Gemini AI Integration**: Powered by Google's Gemini 1.5 Flash model for intelligent responses
+- **Gemini AI Integration**: Powered by Google's latest Gemini models using the unified Google Gen AI SDK
 - **Robust RCON Communication**: Auto-reconnecting RCON with exponential backoff for server restarts
 - **Real-time Log Monitoring**: Watches server log files for new chat messages
 - **Smart Message Chunking**: Automatically splits long AI responses to fit Minecraft's chat limits
@@ -39,9 +39,9 @@ CraftBot/
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher recommended, v14+ minimum)
 - Minecraft server(s) with RCON enabled
-- Google Gemini API key
+- Google Gemini API key (get one from [Google AI Studio](https://aistudio.google.com/apikey))
 
 ## Setup Instructions
 
@@ -370,7 +370,9 @@ The screenshot above shows the colorful, multi-line help guide that players see 
 
 #### Bot Behavior
 - **`botTrigger`**: Command prefix to activate the bot (default: `@gem`)
-- **`geminiModel`**: Which Gemini model to use (`gemini-1.5-flash`, `gemini-1.5-pro`, etc.)
+- **`geminiModel`**: Which Gemini model to use (default: `gemini-1.5-flash`)
+  - Options: `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-2.0-flash-001` (newest), `gemini-2.5-flash` (latest)
+  - See [Google's model documentation](https://ai.google.dev/gemini-api/docs/models) for more options
 - **`botName`**: Display name in chat headers and messages
 
 #### Message Formatting
@@ -401,6 +403,20 @@ Each server in the `servers` array can have individual settings:
 - **`chatRegex`**: Custom regex pattern for parsing chat messages from logs
 
 ## Troubleshooting
+
+### SDK Migration (October 2025)
+
+CraftBot has been updated to use the new **Google Gen AI SDK** (`@google/genai`), replacing the deprecated `@google/generative-ai` package. The old SDK reaches end-of-life on November 30, 2025.
+
+**What Changed:**
+- Package: `@google/generative-ai` → `@google/genai`
+- Import: `GoogleGenerativeAI` → `GoogleGenAI`
+- API structure modernized for Gemini 2.0+ features
+- Response handling simplified
+- Full backward compatibility with existing configurations
+
+**For Existing Installations:**
+If you're upgrading from an older version, simply run `npm install` to get the new SDK. No configuration changes needed!
 
 ### Common Issues
 

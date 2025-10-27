@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 // Import necessary packages
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const { Rcon } = require('rcon-client');
 const chokidar = require('chokidar');
 const fs = require('fs');
@@ -37,8 +37,7 @@ const MESSAGES = globalConfig.messages || {
 if (!GEMINI_API_KEY || GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
     throw new Error("GEMINI_API_KEY is not defined. Please check your .env file.");
 }
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 // --- QUEUE SYSTEM FOR PUBLIC RESPONSES ---
 // Only allow one public response at a time, but private responses (-me) bypass the queue
@@ -493,8 +492,11 @@ async function main() {
                                     } else {
                                         // For -long requests, allow detailed responses
                                         prompt = `Give a detailed explanation (4-8 sentences in one paragraph) for: ${prompt}`;
-                                    }                                      const result = await model.generateContent(prompt);
-                                    let text = result.response.text().replace(/\n/g, ' ').replace(/"/g, "'");
+                                    }                                      const result = await genAI.models.generateContent({
+                                        model: GEMINI_MODEL,
+                                        contents: prompt
+                                    });
+                                    let text = result.text.replace(/\n/g, ' ').replace(/"/g, "'");
                                     
                                     // Add "Why not?" prefix for questions containing "why"
                                     if (hasWhyQuestion) {

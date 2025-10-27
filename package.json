@@ -15,7 +15,7 @@
   "author": "MagicInUse",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.14.0",
+    "@google/genai": "^1.27.0",
     "chokidar": "^3.6.0",
     "dotenv": "^16.4.5",
     "rcon-client": "^4.2.5"
